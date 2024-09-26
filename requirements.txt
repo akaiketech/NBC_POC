@@ -98,8 +98,7 @@ nvidia-nccl-cu12==2.20.5
 nvidia-nvjitlink-cu12==12.6.68
 nvidia-nvtx-cu12==12.1.105
 oauthlib==3.2.2
-openai==1.28.1
-opencv-python==4.9.0.80
+opencv-python-headless
 openvino==2024.1.0
 openvino-telemetry==2024.1.0
 orjson==3.10.3
