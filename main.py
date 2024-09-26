@@ -1,10 +1,12 @@
 import streamlit as st
-import cv2
-from sahi.predict import get_prediction
-from sahi import AutoDetectionModel
+from ultralytics import YOLO
 from PIL import Image
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
 from io import BytesIO
+import requests
+import os
 
 # Set page layout for mobile responsiveness
 st.set_page_config(page_title="NBC Ring Detection", layout="centered")
@@ -67,40 +69,54 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize the YOLOv8 model
+# Function to download the YOLO model checkpoint
+def download_model(link):
+    response = requests.get(link)
+    model_path = "best_epoch_535.pt"
+    
+    with open(model_path, "wb") as file:
+        file.write(response.content)
+    
+    return model_path
+
+# Load YOLOv8 model
 @st.cache_resource
 def load_model():
-    detection_model = AutoDetectionModel.from_pretrained(
-        model_type="yolov8",
-        model_path='best_large_22img.pt',
-        confidence_threshold=0.3,
-        device="cpu",
-    )
-    return detection_model
+    model_path = download_model("https://drive.google.com/file/d/18_2u328wBQAp21PMHbyiSqjT6NCoERe9/view?usp=sharing")  # Replace with your model link
+    model = YOLO(model_path)  # Use the YOLOv8 model
+    return model
 
-# Function to handle image predictions and draw bounding boxes
-def process_image(image, detection_model):
-    image_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-    height, width, _ = image_cv.shape
-    full_shape = [height, width]
-
+# Process the image and apply object detection
+def process_image(image, model):
+    # Save the uploaded image temporarily
     temp_file_path = "temp_image.jpg"
     image.save(temp_file_path)
 
-    result = get_prediction(temp_file_path, detection_model, full_shape=full_shape)
+    # Run YOLO model on the image
+    res = model(temp_file_path, max_det=2000)
+    
+    result = res[0].boxes.xywh.cpu().numpy()  # Get bounding box coordinates
+    
+    # Prepare image for plotting
+    fig, ax = plt.subplots(1, figsize=(12, 12))  # Increase the figure size for visibility
+    ax.imshow(image)
 
-    bounding_boxes = []
-    for prediction in result.object_prediction_list[:2000]:
-        bbox = prediction.bbox.to_xyxy()
-        bounding_boxes.append(bbox)
+    # Draw bounding boxes on the image
+    for i, box in enumerate(result):
+        x, y, w, h = box
+        # Create a Rectangle patch in green
+        rect = patches.Rectangle((x - w / 2, y - h / 2), w, h, linewidth=2, edgecolor='lime', facecolor='none')
+        ax.add_patch(rect)
 
-    for bbox in bounding_boxes:
-        x_min, y_min, x_max, y_max = map(int, bbox)
-        cv2.rectangle(image_cv, (x_min, y_min), (x_max, y_max), color=(0, 255, 0), thickness=2)
+    plt.axis('off')  # Turn off axis numbers and ticks
+    
+    # Save the image with bounding boxes to a BytesIO object
+    buf = BytesIO()
+    plt.savefig(buf, format='jpeg')
+    buf.seek(0)
 
-    processed_image = cv2.cvtColor(image_cv, cv2.COLOR_BGR2RGB)
+    return buf, len(result)
 
-    return processed_image, bounding_boxes
 
 # Load YOLOv8 model
 detection_model = load_model()
@@ -117,31 +133,28 @@ uploaded_file = st.file_uploader("Choose an image", type=["jpg", "jpeg", "png"])
 if uploaded_file is not None:
     img = Image.open(uploaded_file)
 
-    # Display the uploaded image with styling
-    st.image(img, caption="Uploaded Image", use_column_width=True, output_format="auto")
+    # Display the uploaded image
+    st.image(img, caption="Uploaded Image", use_column_width=True)
 
     # Center the Detect Objects button
     st.markdown("<div class='button-container'>", unsafe_allow_html=True)
+    
     if st.button("🚀 Detect Objects"):
         with st.spinner("Processing..."):
-            processed_image, bounding_boxes = process_image(img, detection_model)
+            processed_image_buf, num_boxes = process_image(img, detection_model)
 
-            # Display the processed image with bounding boxes
-            st.markdown(f"<p style='color: red;'>Number of objects detected: {len(bounding_boxes)}</p>", unsafe_allow_html=True)
-
-            # Show bounding box count
-            st.success(f"Number of objects detected: {len(bounding_boxes)}")
+            # Show the result
+            st.markdown(f"<p style='color: red;'>Number of objects detected: {num_boxes}</p>", unsafe_allow_html=True)
+            st.success(f"Number of objects detected: {num_boxes}")
 
             # Provide download button for the processed image
-            buffered = BytesIO()
-            result_image = Image.fromarray(processed_image)
-            result_image.save(buffered, format="JPEG")
             st.download_button(
                 label="📥 Download Processed Image",
-                data=buffered.getvalue(),
+                data=processed_image_buf,
                 file_name="processed_image.jpg",
                 mime="image/jpeg"
             )
+    
     st.markdown("</div>", unsafe_allow_html=True)
 
 # Footer section
