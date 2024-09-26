@@ -82,7 +82,7 @@ def download_model(link):
 # Load YOLOv8 model
 @st.cache_resource
 def load_model():
-    model_path = download_model("https://drive.google.com/file/d/18_2u328wBQAp21PMHbyiSqjT6NCoERe9/view?usp=sharing")  # Replace with your model link
+    model_path = download_model("https://drive.google.com/file/d/1UO5EWcw04KKzjyIzb9ZuebuadnjbTv8i/view?usp=sharing")  # Replace with your model link
     model = YOLO(model_path)  # Use the YOLOv8 model
     return model
 
