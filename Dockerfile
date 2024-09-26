@@ -17,5 +17,5 @@ COPY . .
 EXPOSE 8078
 
 # Run gunicorn when the container launches
-CMD ["gunicorn", "main_3:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8070"]
+CMD ["gunicorn", "main_3:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8078"]
 
