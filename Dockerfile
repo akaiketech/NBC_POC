@@ -4,7 +4,8 @@ FROM python:3.10-slim
 # Set the working directory in the container
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y libgl1-mesa-glx
+# Install necessary dependencies for OpenCV or other libraries requiring system packages
+RUN apt-get update && apt-get install -y libgl1-mesa-glx libglib2.0-0 libsm6 libxrender1 libxext6
 
 # Copy the requirements file to the container
 COPY requirements.txt .
@@ -19,5 +20,7 @@ COPY . .
 EXPOSE 8078
 
 # Run gunicorn when the container launches
-CMD ["gunicorn", "main_3:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8078"]
+# Start the FastAPI application
+CMD ["streamlit", "run", "main.py", "--server.port", "8078"]
+
 
