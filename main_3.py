@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 from io import BytesIO
+import requests
+import os
 
 # Set page layout for mobile responsiveness
 st.set_page_config(page_title="NBC Ring Detection", layout="centered")
@@ -67,10 +69,21 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize YOLOv8 model
+# Function to download the YOLO model checkpoint
+def download_model(link):
+    response = requests.get(link)
+    model_path = "best_epoch_535.pt"
+    
+    with open(model_path, "wb") as file:
+        file.write(response.content)
+    
+    return model_path
+
+# Load YOLOv8 model
 @st.cache_resource
 def load_model():
-    model = YOLO("best_epoch_535.pt")  # Use the YOLOv8 model
+    model_path = download_model("https://drive.google.com/file/d/18_2u328wBQAp21PMHbyiSqjT6NCoERe9/view?usp=sharing")  # Replace with your model link
+    model = YOLO(model_path)  # Use the YOLOv8 model
     return model
 
 # Process the image and apply object detection
