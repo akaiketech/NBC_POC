@@ -1,3 +1,4 @@
+import gdown
 import streamlit as st
 from ultralytics import YOLO
 from PIL import Image
@@ -5,7 +6,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 from io import BytesIO
-import requests
 import os
 
 # Set page layout for mobile responsiveness
@@ -69,20 +69,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Function to download the YOLO model checkpoint
-def download_model(link):
-    response = requests.get(link)
-    model_path = "best_epoch_535.pt"
-    
-    with open(model_path, "wb") as file:
-        file.write(response.content)
-    
-    return model_path
+# Function to download the YOLO model checkpoint using gdown
+def download_model(file_id):
+    url = f'https://drive.google.com/uc?id={file_id}'
+    output = 'best_epoch_535.pt'  # File output name
+    gdown.download(url, output, quiet=False)
+    return output
 
 # Load YOLOv8 model
 @st.cache_resource
 def load_model():
-    model_path = download_model("https://drive.google.com/file/d/1UO5EWcw04KKzjyIzb9ZuebuadnjbTv8i/view?usp=sharing")  # Replace with your model link
+    file_id = '1UO5EWcw04KKzjyIzb9ZuebuadnjbTv8i'  # Replace this with the actual Google Drive file ID
+    model_path = download_model(file_id)
     model = YOLO(model_path)  # Use the YOLOv8 model
     return model
 
@@ -116,7 +114,6 @@ def process_image(image, model):
     buf.seek(0)
 
     return buf, len(result)
-
 
 # Load YOLOv8 model
 detection_model = load_model()
